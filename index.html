@@ -1,0 +1,1095 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-[#0b0e14]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Dash | Plataforma & API de Pagamentos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Fira Code -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- QR Code Generator JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        noir: {
+                            bg: '#0b0e14',
+                            card: '#131722',
+                            input: '#1a1f2c',
+                            border: '#262d3d',
+                            green: '#00e676',
+                            greenHover: '#00c853',
+                            greenDark: '#05381e',
+                            textMuted: '#8f9bba'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        ::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0e14;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #262d3d;
+            border-radius: 4px;
+        }
+        .active-tab {
+            color: #ffffff;
+            border-bottom: 2px solid #00e676;
+        }
+        .inactive-tab {
+            color: #8f9bba;
+            border-bottom: 2px solid transparent;
+        }
+        .inactive-tab:hover {
+            color: #d1d5db;
+        }
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(0, 230, 118, 0.25);
+        }
+        .json-key { color: #818cf8; }
+        .json-string { color: #34d399; }
+        .json-number { color: #fbbf24; }
+        .json-boolean { color: #f472b6; }
+    </style>
+</head>
+<body class="h-full font-sans text-slate-100 antialiased bg-[#0b0e14] flex flex-col justify-between selection:bg-noir-green selection:text-black">
+
+    <!-- TOP HEADER -->
+    <header class="w-full h-14 bg-[#0b0e14] border-b border-noir-border flex items-center justify-between px-4 sticky top-0 z-30">
+        <div class="flex items-center space-x-3">
+            <button id="hamburgerBtn" onclick="toggleToast('Menu de navegação ativo')" class="text-slate-300 hover:text-white p-2 rounded-lg transition">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
+            
+            <div class="flex items-center space-x-2">
+                <div class="h-8 w-8 rounded-xl bg-noir-card border border-noir-border flex items-center justify-center text-noir-green shadow-md">
+                    <i class="fa-solid fa-chart-line text-base"></i>
+                </div>
+                <span class="font-bold text-sm text-white tracking-tight hidden sm:inline-block">Minha Dash</span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <div id="envBadge" class="flex items-center space-x-1.5 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-noir-green animate-pulse"></span>
+                <span>Produção</span>
+            </div>
+
+            <button onclick="toggleToast('Notificações sincronizadas')" class="text-slate-400 hover:text-white p-2 rounded-lg transition relative">
+                <i class="fa-regular fa-bell text-lg"></i>
+                <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-noir-green rounded-full"></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col space-y-5 pb-24">
+        
+        <!-- ==================== VIEW 1: NOVA COBRANÇA ==================== -->
+        <section id="page-nova" class="space-y-5">
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">Nova Cobrança</h1>
+                <p class="text-noir-textMuted text-xs mt-0.5">Abra várias abas para gerar cobranças em paralelo</p>
+            </div>
+
+            <!-- BUTTON: NOVA COBRANÇA -->
+            <button onclick="createNewTab()" class="w-full bg-noir-green hover:bg-noir-greenHover text-black font-bold py-3.5 px-4 rounded-2xl transition duration-150 active:scale-[0.99] flex items-center justify-center space-x-2 neon-glow text-sm">
+                <i class="fa-solid fa-plus text-base font-extrabold"></i>
+                <span>Nova Cobrança</span>
+            </button>
+
+            <!-- TABS BAR -->
+            <div class="w-full overflow-x-auto border-b border-noir-border flex items-center space-x-2 pt-1 no-scrollbar" id="tabsBar">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- FORM CARD -->
+            <div id="chargeFormCard" class="bg-noir-card rounded-2xl p-5 border border-noir-border space-y-5 shadow-xl">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2.5">Tipo de cobrança</label>
+                    <div class="flex items-center space-x-3">
+                        <button id="btnTypePix" type="button" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-noir-green text-black transition flex items-center space-x-2">
+                            <i class="fa-solid fa-bolt text-xs"></i>
+                            <span>Pix</span>
+                        </button>
+                        <button id="btnTypeBoleto" type="button" disabled class="px-4 py-2.5 rounded-xl text-xs font-medium bg-[#1a1f2c] text-slate-500 border border-noir-border cursor-not-allowed flex items-center space-x-2">
+                            <span>Boleto</span>
+                            <span class="text-[9px] bg-slate-800 text-slate-400 font-bold px-1.5 py-0.5 rounded uppercase">EM BREVE</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Valor (R$)</label>
+                    <div class="relative">
+                        <input type="text" id="inputValor" oninput="handleValueInput(this)" placeholder="0,00" class="w-full bg-noir-input border border-noir-border rounded-xl px-4 py-3 text-lg font-bold text-white placeholder-slate-600 focus:outline-none focus:border-noir-green transition">
+                    </div>
+
+                    <div class="grid grid-cols-5 gap-2 mt-3">
+                        <button type="button" onclick="addValue(10)" class="bg-noir-input hover:bg-[#23293a] active:border-noir-green text-slate-200 border border-noir-border py-2.5 rounded-xl text-xs font-semibold transition text-center">+10</button>
+                        <button type="button" onclick="addValue(50)" class="bg-noir-input hover:bg-[#23293a] active:border-noir-green text-slate-200 border border-noir-border py-2.5 rounded-xl text-xs font-semibold transition text-center">+50</button>
+                        <button type="button" onclick="addValue(100)" class="bg-noir-input hover:bg-[#23293a] active:border-noir-green text-slate-200 border border-noir-border py-2.5 rounded-xl text-xs font-semibold transition text-center">+100</button>
+                        <button type="button" onclick="addValue(200)" class="bg-noir-input hover:bg-[#23293a] active:border-noir-green text-slate-200 border border-noir-border py-2.5 rounded-xl text-xs font-semibold transition text-center">+200</button>
+                        <button type="button" onclick="addValue(500)" class="bg-noir-input hover:bg-[#23293a] active:border-noir-green text-slate-200 border border-noir-border py-2.5 rounded-xl text-xs font-semibold transition text-center">+500</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Descrição (opcional)</label>
+                    <input type="text" id="inputDescricao" oninput="handleDescInput(this)" placeholder="Ex: Pagamento referente ao pedido #123" class="w-full bg-noir-input border border-noir-border rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-noir-green transition">
+                </div>
+
+                <button type="button" onclick="generatePixCharge()" class="w-full bg-noir-green hover:bg-noir-greenHover text-black font-bold py-3.5 px-4 rounded-xl transition duration-150 active:scale-[0.99] flex items-center justify-center space-x-2 text-sm neon-glow">
+                    <i class="fa-solid fa-qrcode"></i>
+                    <span>Gerar Cobrança Pix</span>
+                </button>
+            </div>
+
+            <!-- GENERATED QR CODE DISPLAY -->
+            <div id="qrCodeResultCard" class="bg-noir-card rounded-2xl p-6 border border-noir-border space-y-5 hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                <div class="flex items-center justify-between border-b border-noir-border pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="h-2.5 w-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Aguardando Pagamento</span>
+                    </div>
+                    <span class="text-xs font-mono text-noir-textMuted" id="timerCount">15:00</span>
+                </div>
+
+                <div class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl max-w-[220px] mx-auto shadow-inner">
+                    <div id="qrcodeCanvas"></div>
+                </div>
+
+                <div class="text-center space-y-1">
+                    <span class="text-xs text-noir-textMuted">Valor total da cobrança</span>
+                    <h2 class="text-2xl font-black text-white" id="qrDisplayValue">R$ 0,00</h2>
+                    <p class="text-xs text-slate-400 font-medium italic" id="qrDisplayDesc">Sem descrição</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-[11px] font-semibold text-slate-400">Pix Copia e Cola:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="pixPayloadInput" readonly class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2 text-xs font-mono text-slate-300 focus:outline-none truncate">
+                        <button onclick="copyPixCode()" class="bg-noir-green text-black px-4 py-2 rounded-xl text-xs font-bold hover:bg-noir-greenHover transition flex items-center space-x-1 whitespace-nowrap">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copiar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex flex-col sm:flex-row gap-2">
+                    <button onclick="simulateSuccessPayment()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition">
+                        <i class="fa-solid fa-check-double mr-1.5"></i>Simular Pagamento Aprovado
+                    </button>
+                    <button onclick="resetCurrentForm()" class="bg-noir-input hover:bg-[#23293a] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs border border-noir-border transition">
+                        Editar Cobrança
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== VIEW 2: INTEGRAÇÃO DE API ==================== -->
+        <section id="page-api" class="space-y-6 hidden">
+            <div class="flex items-center justify-between border-b border-noir-border pb-4">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="text-2xl font-bold text-white tracking-tight">API & Desenvolvedores</h1>
+                        <span class="text-[10px] bg-emerald-950 text-noir-green border border-noir-green/30 font-bold px-2 py-0.5 rounded-md">v1.4 REST</span>
+                    </div>
+                    <p class="text-noir-textMuted text-xs mt-1">Integre cobranças Pix instantâneas ao seu sistema ou e-commerce</p>
+                </div>
+                <div class="hidden sm:flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-noir-green"></span>
+                    <span class="text-xs text-slate-300 font-medium">Status API: 99.98%</span>
+                </div>
+            </div>
+
+            <!-- API KEYS -->
+            <div class="bg-noir-card rounded-2xl p-5 border border-noir-border space-y-4 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-key text-noir-green text-sm"></i>
+                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Chaves de Autenticação</h2>
+                    </div>
+                    <button onclick="rotateApiKeys()" class="text-[11px] text-slate-400 hover:text-white underline transition">Regerar Chaves</button>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300 font-semibold">Chave Secret (Produção)</span>
+                            <span class="text-[10px] text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/20">Live</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="relative w-full">
+                                <input type="password" id="prodApiKey" readonly value="sk_live_noir_9f8a3b2c1d4e" class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2.5 text-xs font-mono text-slate-200 focus:outline-none pr-10">
+                                <button onclick="toggleKeyVisibility('prodApiKey', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                                    <i class="fa-regular fa-eye text-xs"></i>
+                                </button>
+                            </div>
+                            <button onclick="copyApiKey('prodApiKey', 'Chave de Produção copiada!')" class="bg-noir-input hover:bg-[#23293a] text-slate-300 border border-noir-border px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5">
+                                <i class="fa-regular fa-copy"></i>
+                                <span class="hidden sm:inline">Copiar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300 font-semibold">Chave Secret (Sandbox / Testes)</span>
+                            <span class="text-[10px] text-amber-400 bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/20">Test</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="relative w-full">
+                                <input type="password" id="testApiKey" readonly value="sk_test_noir_7x6v5u4t3s2r" class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2.5 text-xs font-mono text-slate-200 focus:outline-none pr-10">
+                                <button onclick="toggleKeyVisibility('testApiKey', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                                    <i class="fa-regular fa-eye text-xs"></i>
+                                </button>
+                            </div>
+                            <button onclick="copyApiKey('testApiKey', 'Chave de Testes copiada!')" class="bg-noir-input hover:bg-[#23293a] text-slate-300 border border-noir-border px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5">
+                                <i class="fa-regular fa-copy"></i>
+                                <span class="hidden sm:inline">Copiar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INTERACTIVE PLAYGROUND -->
+            <div class="bg-noir-card rounded-2xl p-5 border border-noir-border space-y-4 shadow-xl">
+                <div class="flex items-center justify-between border-b border-noir-border pb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-terminal text-noir-green text-sm"></i>
+                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Playground / Testar Requisição</h2>
+                    </div>
+                    <span class="text-[10px] bg-slate-800 text-slate-300 font-mono px-2 py-0.5 rounded">POST /v1/charges</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">Valor do Pix (R$)</label>
+                        <input type="number" id="apiValInput" value="49.90" step="0.01" class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-noir-green">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">ID do Pedido (Reference)</label>
+                        <input type="text" id="apiRefInput" value="ORDER-789" class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-noir-green">
+                    </div>
+                </div>
+
+                <button onclick="runApiTestRequest()" class="w-full bg-noir-green hover:bg-noir-greenHover text-black font-bold py-2.5 px-4 rounded-xl transition text-xs flex items-center justify-center space-x-2 shadow-lg">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                    <span>Disparar Requisição de Teste</span>
+                </button>
+
+                <div class="space-y-1">
+                    <div class="flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                        <span>RESPOSTA DO SERVIDOR</span>
+                        <span id="apiResponseTime" class="text-noir-green">-- ms</span>
+                    </div>
+                    <div class="bg-[#090b10] border border-noir-border rounded-xl p-3 font-mono text-[11px] overflow-x-auto text-slate-300 leading-relaxed shadow-inner" id="apiResponseJson">
+                        <span class="text-slate-500 italic">Clique acima para disparar o teste.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WEBHOOKS -->
+            <div class="bg-noir-card rounded-2xl p-5 border border-noir-border space-y-4 shadow-xl">
+                <div class="flex items-center space-x-2 border-b border-noir-border pb-3">
+                    <i class="fa-solid fa-satellite-dish text-noir-green text-sm"></i>
+                    <h2 class="text-sm font-bold text-white uppercase tracking-wider">Webhooks & Notificações</h2>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">URL de Destino (Endpoint HTTP POST)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="url" id="webhookUrlInput" value="https://sua-loja.com/api/webhooks/pix" class="w-full bg-noir-input border border-noir-border rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-noir-green">
+                        <button onclick="saveWebhookUrl()" class="bg-noir-green text-black font-bold px-4 py-2.5 rounded-xl text-xs hover:bg-noir-greenHover transition whitespace-nowrap">Salvar</button>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-300">Eventos para Notificar:</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <label class="flex items-center space-x-2 bg-noir-input border border-noir-border p-2.5 rounded-xl cursor-pointer">
+                            <input type="checkbox" checked class="accent-noir-green rounded">
+                            <span class="text-slate-200">charge.paid (Pagamento Aprovado)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 bg-noir-input border border-noir-border p-2.5 rounded-xl cursor-pointer">
+                            <input type="checkbox" checked class="accent-noir-green rounded">
+                            <span class="text-slate-200">charge.expired (Cobrança Expirada)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-noir-border/60 flex items-center justify-between">
+                    <span class="text-xs text-noir-textMuted">Testar disparo de payload webhook:</span>
+                    <button onclick="triggerTestWebhook()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-noir-border font-semibold px-3 py-1.5 rounded-xl text-xs transition">
+                        Disparar Evento Teste
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== VIEW 3: HISTÓRICO ==================== -->
+        <section id="page-historico" class="space-y-5 hidden">
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">Histórico de Cobranças</h1>
+                <p class="text-noir-textMuted text-xs mt-0.5">Consulte todas as cobranças geradas no sistema</p>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <input type="text" id="historySearch" oninput="renderHistoryList()" placeholder="Buscar por valor ou descrição..." class="w-full bg-noir-card border border-noir-border rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-noir-green">
+            </div>
+
+            <div class="space-y-2.5" id="historyListContainer">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- ==================== VIEW 4: SALDO & REPASSES ==================== -->
+        <section id="page-saldo" class="space-y-5 hidden">
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">Saldo & Repasses</h1>
+                <p class="text-noir-textMuted text-xs mt-0.5">Gerencie seus recebimentos Pix em tempo real</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-[#131722] to-[#1a2235] rounded-2xl p-5 border border-noir-border space-y-4 shadow-xl relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span class="text-xs text-noir-textMuted font-medium">Saldo Disponível</span>
+                        <h2 class="text-3xl font-black text-white mt-1" id="saldoDisponivel">R$ 0,00</h2>
+                    </div>
+                    <span class="bg-noir-greenDark text-noir-green border border-noir-green/30 text-[10px] font-bold px-2.5 py-1 rounded-full">Liquidado</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-noir-border/60">
+                    <div>
+                        <span class="text-[11px] text-slate-400">A receber hoje</span>
+                        <p class="text-sm font-bold text-slate-200" id="saldoAReceber">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <span class="text-[11px] text-slate-400">Tarifa média Pix</span>
+                        <p class="text-sm font-bold text-noir-green">0.99%</p>
+                    </div>
+                </div>
+
+                <button onclick="toggleToast('Solicitação de Saque via Pix enviada!')" class="w-full bg-noir-green hover:bg-noir-greenHover text-black font-bold py-3 px-4 rounded-xl transition text-xs flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span>Transferir para Conta Bancária (PIX)</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== VIEW 5: RECEBEDORES ==================== -->
+        <section id="page-recebedores" class="space-y-5 hidden">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-white tracking-tight">Recebedores</h1>
+                    <p class="text-noir-textMuted text-xs mt-0.5">Gerencie o split automático e contas de repasse</p>
+                </div>
+                <button onclick="toggleModal('modalNovoRecebedor')" class="bg-noir-green hover:bg-noir-greenHover text-black font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow-lg">
+                    <i class="fa-solid fa-user-plus text-xs"></i>
+                    <span>Novo Recebedor</span>
+                </button>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <input type="text" id="recebedorSearch" oninput="renderRecebedoresList()" placeholder="Buscar por nome, documento ou chave Pix..." class="w-full bg-noir-card border border-noir-border rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-noir-green">
+            </div>
+
+            <div class="space-y-3" id="recebedoresListContainer">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- ==================== VIEW 6: HOME DASHBOARD ==================== -->
+        <section id="page-home" class="space-y-5 hidden">
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">Visão Geral</h1>
+                <p class="text-noir-textMuted text-xs mt-0.5">Resumo financeiro das suas movimentações Pix</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-noir-card p-4 rounded-2xl border border-noir-border space-y-1">
+                    <span class="text-[11px] text-slate-400">Vendas Hoje</span>
+                    <h3 class="text-xl font-bold text-white" id="homeVendasHoje">R$ 0,00</h3>
+                    <span class="text-[10px] text-noir-green font-semibold" id="homeVendasSub">0 vendas realizadas</span>
+                </div>
+                <div class="bg-noir-card p-4 rounded-2xl border border-noir-border space-y-1">
+                    <span class="text-[11px] text-slate-400">Cobranças Pagas</span>
+                    <h3 class="text-xl font-bold text-white" id="homeCobrancasPagas">0</h3>
+                    <span class="text-[10px] text-noir-green font-semibold" id="homeConversaoSub">0% de conversão</span>
+                </div>
+            </div>
+
+            <div class="bg-noir-card p-5 rounded-2xl border border-noir-border space-y-3">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Ações Rápidas</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="switchNav('nova')" class="bg-noir-input hover:bg-[#23293a] text-left p-3 rounded-xl border border-noir-border space-y-1 transition">
+                        <i class="fa-solid fa-qrcode text-noir-green"></i>
+                        <p class="text-xs font-bold text-white">Nova Cobrança</p>
+                        <p class="text-[10px] text-slate-400">Gerar QR Code Pix</p>
+                    </button>
+                    <button onclick="switchNav('api')" class="bg-noir-input hover:bg-[#23293a] text-left p-3 rounded-xl border border-noir-border space-y-1 transition">
+                        <i class="fa-solid fa-terminal text-noir-green"></i>
+                        <p class="text-xs font-bold text-white">API Docs</p>
+                        <p class="text-[10px] text-slate-400">Chaves & Webhooks</p>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-[#0b0e14]/95 backdrop-blur-md border-t border-noir-border z-40 px-3 py-2">
+        <div class="max-w-md mx-auto flex items-center justify-around">
+            <button onclick="switchNav('home')" id="nav-home" class="flex flex-col items-center space-y-1 text-noir-textMuted hover:text-white transition px-2 py-1">
+                <i class="fa-solid fa-house text-base"></i>
+                <span class="text-[10px] font-medium">Home</span>
+            </button>
+
+            <button onclick="switchNav('nova')" id="nav-nova" class="flex flex-col items-center space-y-1 text-noir-green font-bold transition px-2 py-1">
+                <i class="fa-solid fa-circle-plus text-xl text-noir-green"></i>
+                <span class="text-[10px]">Nova</span>
+            </button>
+
+            <button onclick="switchNav('historico')" id="nav-historico" class="flex flex-col items-center space-y-1 text-noir-textMuted hover:text-white transition px-2 py-1">
+                <i class="fa-regular fa-clock text-base"></i>
+                <span class="text-[10px] font-medium">Histórico</span>
+            </button>
+
+            <button onclick="switchNav('recebedores')" id="nav-recebedores" class="flex flex-col items-center space-y-1 text-noir-textMuted hover:text-white transition px-2 py-1">
+                <i class="fa-solid fa-users text-base"></i>
+                <span class="text-[10px] font-medium">Recebedores</span>
+            </button>
+
+            <button onclick="switchNav('saldo')" id="nav-saldo" class="flex flex-col items-center space-y-1 text-noir-textMuted hover:text-white transition px-2 py-1">
+                <i class="fa-solid fa-layer-group text-base"></i>
+                <span class="text-[10px] font-medium">Saldo</span>
+            </button>
+
+            <button onclick="switchNav('api')" id="nav-api" class="flex flex-col items-center space-y-1 text-noir-textMuted hover:text-white transition px-2 py-1">
+                <i class="fa-solid fa-terminal text-base"></i>
+                <span class="text-[10px] font-medium">API</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MODAL: NOVO RECEBEDOR -->
+    <div id="modalNovoRecebedor" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-noir-card border border-noir-border rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl relative">
+            <div class="flex items-center justify-between border-b border-noir-border pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-user-plus text-noir-green"></i>
+                    <span>Cadastrar Novo Recebedor</span>
+                </h3>
+                <button onclick="toggleModal('modalNovoRecebedor')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleCadastrarRecebedor(event)" class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nome Completo ou Razão Social</label>
+                    <input type="text" id="recNome" required placeholder="Ex: João da Silva / Loja XYZ" class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-noir-green">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">CPF / CNPJ</label>
+                        <input type="text" id="recDoc" required placeholder="000.000.000-00" class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-noir-green">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">Chave Pix</label>
+                        <input type="text" id="recChavePix" required placeholder="E-mail, CPF, Tel..." class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-noir-green">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">Split Padrão (%)</label>
+                        <input type="number" id="recSplit" placeholder="Ex: 10" min="0" max="100" class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-noir-green">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">Tipo de Recebedor</label>
+                        <select id="recTipo" class="w-full bg-noir-input border border-noir-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-noir-green">
+                            <option value="Vendedor / Parceiro">Vendedor / Parceiro</option>
+                            <option value="Afiliado">Afiliado</option>
+                            <option value="Fornecedor">Fornecedor</option>
+                            <option value="Sócio">Sócio</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end space-x-2">
+                    <button type="button" onclick="toggleModal('modalNovoRecebedor')" class="bg-noir-input hover:bg-[#23293a] text-slate-300 font-semibold px-4 py-2 rounded-xl text-xs border border-noir-border">Cancelar</button>
+                    <button type="submit" class="bg-noir-green hover:bg-noir-greenHover text-black font-bold px-4 py-2 rounded-xl text-xs">Cadastrar Recebedor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION FLOATER -->
+    <div id="toastBox" class="fixed top-16 right-4 z-50 transform -translate-y-10 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-noir-card border border-noir-green text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2.5 text-xs font-semibold">
+            <i class="fa-solid fa-circle-check text-noir-green text-sm"></i>
+            <span id="toastMsg">Notificação</span>
+        </div>
+    </div>
+
+    <script>
+        // TAB & DATA MANAGEMENT
+        let tabs = [
+            { id: 1, title: 'Cobrança 1', amount: '', description: '', generated: false }
+        ];
+        let activeTabId = 1;
+        let tabCounter = 1;
+        let timerInterval = null;
+
+        let mockHistory = [];
+        let totalPaidAmount = 0;
+        let totalPaidCount = 0;
+
+        let mockRecebedores = [];
+
+        window.onload = function() {
+            renderTabs();
+            loadActiveTabForm();
+            renderHistoryList();
+            renderRecebedoresList();
+            updateDashboardMetrics();
+        };
+
+        // NAVIGATION SWITCHER
+        function switchNav(pageName) {
+            const pages = ['nova', 'api', 'historico', 'recebedores', 'saldo', 'home'];
+            
+            pages.forEach(p => {
+                const pageEl = document.getElementById(`page-${p}`);
+                const navEl = document.getElementById(`nav-${p}`);
+                
+                if (pageEl) {
+                    if (p === pageName) {
+                        pageEl.classList.remove('hidden');
+                        if (navEl) navEl.className = "flex flex-col items-center space-y-1 text-noir-green font-bold transition px-2 py-1";
+                    } else {
+                        pageEl.classList.add('hidden');
+                        if (navEl) navEl.className = "flex flex-col items-center space-y-1 text-noir-textMuted hover:text-white transition px-2 py-1";
+                    }
+                }
+            });
+
+            if (pageName === 'api') {
+                toggleToast('Central de API Carregada');
+            }
+        }
+
+        // TABS SYSTEM
+        function renderTabs() {
+            const container = document.getElementById('tabsBar');
+            container.innerHTML = '';
+
+            tabs.forEach(tab => {
+                const isActive = tab.id === activeTabId;
+                const tabEl = document.createElement('div');
+                
+                tabEl.className = `flex items-center space-x-2 px-3 py-2 cursor-pointer transition text-xs font-bold whitespace-nowrap ${isActive ? 'active-tab' : 'inactive-tab'}`;
+                
+                tabEl.onclick = (e) => {
+                    if (e.target.tagName !== 'I') {
+                        switchTab(tab.id);
+                    }
+                };
+
+                const titleSpan = document.createElement('span');
+                titleSpan.innerText = tab.title;
+
+                const closeIcon = document.createElement('i');
+                closeIcon.className = 'fa-solid fa-xmark text-slate-400 hover:text-rose-400 text-xs ml-1 p-0.5 rounded transition';
+                closeIcon.onclick = (e) => {
+                    e.stopPropagation();
+                    closeTab(tab.id);
+                };
+
+                tabEl.appendChild(titleSpan);
+                if (tabs.length > 1) {
+                    tabEl.appendChild(closeIcon);
+                }
+                container.appendChild(tabEl);
+            });
+        }
+
+        function switchTab(id) {
+            saveCurrentTabForm();
+            activeTabId = id;
+            renderTabs();
+            loadActiveTabForm();
+        }
+
+        function createNewTab() {
+            saveCurrentTabForm();
+            tabCounter++;
+            const newTab = {
+                id: tabCounter,
+                title: `Cobrança ${tabCounter}`,
+                amount: '',
+                description: '',
+                generated: false
+            };
+            tabs.push(newTab);
+            activeTabId = newTab.id;
+            renderTabs();
+            loadActiveTabForm();
+            toggleToast('Nova aba criada!');
+        }
+
+        function closeTab(id) {
+            if (tabs.length <= 1) return;
+            const index = tabs.findIndex(t => t.id === id);
+            tabs = tabs.filter(t => t.id !== id);
+            if (activeTabId === id) {
+                activeTabId = tabs[Math.max(0, index - 1)].id;
+            }
+            renderTabs();
+            loadActiveTabForm();
+        }
+
+        function getCurrentTab() {
+            return tabs.find(t => t.id === activeTabId);
+        }
+
+        function saveCurrentTabForm() {
+            const current = getCurrentTab();
+            if (!current) return;
+            const inputVal = document.getElementById('inputValor').value;
+            const inputDesc = document.getElementById('inputDescricao').value;
+            current.amount = inputVal;
+            current.description = inputDesc;
+            
+            if (inputVal.trim() !== '' && inputVal !== '0,00') {
+                current.title = `R$ ${inputVal}`;
+            } else {
+                current.title = `Cobrança ${current.id}`;
+            }
+        }
+
+        function loadActiveTabForm() {
+            const current = getCurrentTab();
+            if (!current) return;
+
+            document.getElementById('inputValor').value = current.amount;
+            document.getElementById('inputDescricao').value = current.description;
+
+            if (current.generated) {
+                document.getElementById('chargeFormCard').classList.add('hidden');
+                document.getElementById('qrCodeResultCard').classList.remove('hidden');
+                renderQrCode(current);
+            } else {
+                document.getElementById('chargeFormCard').classList.remove('hidden');
+                document.getElementById('qrCodeResultCard').classList.add('hidden');
+            }
+        }
+
+        function handleValueInput(input) {
+            let clean = input.value.replace(/\D/g, '');
+            if (clean === '') {
+                input.value = '';
+            } else {
+                let num = (parseInt(clean, 10) / 100).toFixed(2);
+                input.value = num.replace('.', ',');
+            }
+            saveCurrentTabForm();
+            renderTabs();
+        }
+
+        function handleDescInput() {
+            saveCurrentTabForm();
+        }
+
+        function addValue(addAmount) {
+            const input = document.getElementById('inputValor');
+            let currentValStr = input.value.replace(/\./g, '').replace(',', '.');
+            let currentVal = parseFloat(currentValStr) || 0;
+            currentVal += addAmount;
+            input.value = currentVal.toFixed(2).replace('.', ',');
+            saveCurrentTabForm();
+            renderTabs();
+        }
+
+        function generatePixCharge() {
+            const current = getCurrentTab();
+            const valInput = document.getElementById('inputValor').value;
+            
+            if (!valInput || valInput === '0,00' || parseFloat(valInput.replace(',', '.')) <= 0) {
+                toggleToast('Informe um valor válido');
+                return;
+            }
+
+            current.generated = true;
+            saveCurrentTabForm();
+            loadActiveTabForm();
+            startTimer();
+            toggleToast('Cobrança Pix criada com sucesso!');
+        }
+
+        function renderQrCode(tab) {
+            const qrContainer = document.getElementById('qrcodeCanvas');
+            qrContainer.innerHTML = '';
+
+            const rawVal = tab.amount || '0.00';
+            const mockPixPayload = `00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-426614174000520400005303986540${rawVal.replace(',', '.')}5802BR5916MINHA_DASH_STORE6009SAO_PAULO62070503***6304A1B2`;
+
+            document.getElementById('pixPayloadInput').value = mockPixPayload;
+            document.getElementById('qrDisplayValue').innerText = `R$ ${rawVal}`;
+            document.getElementById('qrDisplayDesc').innerText = tab.description || 'Sem descrição informada';
+
+            new QRCode(qrContainer, {
+                text: mockPixPayload,
+                width: 170,
+                height: 170,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        function copyPixCode() {
+            copyText(document.getElementById('pixPayloadInput').value, 'Pix Copia e Cola copiado!');
+        }
+
+        function simulateSuccessPayment() {
+            const current = getCurrentTab();
+            if (current && current.amount) {
+                const numVal = parseFloat(current.amount.replace(/\./g, '').replace(',', '.')) || 0;
+                totalPaidAmount += numVal;
+                totalPaidCount += 1;
+
+                mockHistory.unshift({
+                    id: `PIX-${Math.floor(1000 + Math.random() * 9000)}`,
+                    amount: current.amount,
+                    desc: current.description || 'Cobrança Pix',
+                    status: 'PAGO',
+                    time: 'Agora mesmo'
+                });
+                renderHistoryList();
+                updateDashboardMetrics();
+            }
+            current.generated = false;
+            current.amount = '';
+            current.description = '';
+            current.title = `Cobrança ${current.id}`;
+            renderTabs();
+            loadActiveTabForm();
+            toggleToast('🎉 Pagamento APROVADO via Pix!');
+        }
+
+        function updateDashboardMetrics() {
+            const formattedTotal = totalPaidAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const saldoEl = document.getElementById('saldoDisponivel');
+            const homeVendasEl = document.getElementById('homeVendasHoje');
+            const homeVendasSubEl = document.getElementById('homeVendasSub');
+            const homePagasEl = document.getElementById('homeCobrancasPagas');
+            const homeConversaoSubEl = document.getElementById('homeConversaoSub');
+
+            if (saldoEl) saldoEl.innerText = `R$ ${formattedTotal}`;
+            if (homeVendasEl) homeVendasEl.innerText = `R$ ${formattedTotal}`;
+            if (homeVendasSubEl) homeVendasSubEl.innerText = `${totalPaidCount} ${totalPaidCount === 1 ? 'venda realizada' : 'vendas realizadas'}`;
+            if (homePagasEl) homePagasEl.innerText = `${totalPaidCount}`;
+            if (homeConversaoSubEl) homeConversaoSubEl.innerText = totalPaidCount > 0 ? `100% de conversão` : `0% de conversão`;
+        }
+
+        function resetCurrentForm() {
+            const current = getCurrentTab();
+            current.generated = false;
+            loadActiveTabForm();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            let duration = 15 * 60;
+            const timerDisplay = document.getElementById('timerCount');
+
+            timerInterval = setInterval(() => {
+                let minutes = parseInt(duration / 60, 10);
+                let seconds = parseInt(duration % 60, 10);
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+                timerDisplay.textContent = minutes + ":" + seconds;
+
+                if (--duration < 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "EXPIRADO";
+                }
+            }, 1000);
+        }
+
+        // API INTEGRATION UTILS
+        function toggleKeyVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-regular fa-eye-slash text-xs text-noir-green';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-regular fa-eye text-xs text-slate-400';
+            }
+        }
+
+        function copyApiKey(inputId, msg) {
+            const val = document.getElementById(inputId).value;
+            if (!val) return;
+            copyText(val, msg);
+        }
+
+        function rotateApiKeys() {
+            document.getElementById('prodApiKey').value = 'sk_live_noir_' + Math.random().toString(36).substr(2, 16);
+            document.getElementById('testApiKey').value = 'sk_test_noir_' + Math.random().toString(36).substr(2, 16);
+            toggleToast('Chaves API regeradas!');
+        }
+
+        function runApiTestRequest() {
+            const valInput = document.getElementById('apiValInput').value;
+            const refInput = document.getElementById('apiRefInput').value;
+
+            if (!valInput || parseFloat(valInput) <= 0) {
+                toggleToast('Informe um valor válido no Playground');
+                return;
+            }
+
+            const val = parseFloat(valInput);
+            const ref = refInput || 'ORDER-001';
+            
+            const randomTime = Math.floor(Math.random() * 80) + 60;
+            document.getElementById('apiResponseTime').innerText = `${randomTime} ms`;
+
+            const jsonResponse = {
+                "id": `ch_noir_${Math.random().toString(36).substr(2, 9)}`,
+                "object": "charge",
+                "status": "pending",
+                "amount": Math.round(val * 100),
+                "currency": "BRL",
+                "reference_id": ref,
+                "pix": {
+                    "qr_code_url": "https://api.pixnoir.com/v1/qr/ch_live_89123.png",
+                    "payload": `00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-426614174000520400005303986${val}5802BR`,
+                    "expires_at": new Date(Date.now() + 15 * 60000).toISOString()
+                },
+                "created_at": new Date().toISOString()
+            };
+
+            document.getElementById('apiResponseJson').innerHTML = highlightJson(JSON.stringify(jsonResponse, null, 2));
+        }
+
+        function highlightJson(json) {
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-boolean';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function saveWebhookUrl() {
+            const url = document.getElementById('webhookUrlInput').value;
+            toggleToast(`Webhook salvo: ${url}`);
+        }
+
+        function triggerTestWebhook() {
+            toggleToast('🚀 Payload Webhook enviado (Status 200)');
+        }
+
+        // HISTORY LIST
+        function renderHistoryList() {
+            const container = document.getElementById('historyListContainer');
+            if (!container) return;
+            const term = (document.getElementById('historySearch')?.value || '').toLowerCase();
+            container.innerHTML = '';
+
+            const filtered = mockHistory.filter(h => h.desc.toLowerCase().includes(term) || h.amount.includes(term));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-noir-card p-8 rounded-2xl border border-noir-border text-center text-noir-textMuted space-y-2">
+                        <i class="fa-regular fa-folder-open text-2xl text-slate-600"></i>
+                        <p class="text-xs">Nenhuma cobrança registrada.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(h => {
+                const item = document.createElement('div');
+                item.className = "bg-noir-card p-3.5 rounded-2xl border border-noir-border flex items-center justify-between";
+                item.innerHTML = `
+                    <div class="space-y-0.5">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold text-white">R$ ${h.amount}</span>
+                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${h.status === 'PAGO' ? 'bg-emerald-950 text-noir-green' : h.status === 'PENDENTE' ? 'bg-amber-950 text-amber-400' : 'bg-slate-800 text-slate-400'}">${h.status}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">${h.desc}</p>
+                    </div>
+                    <span class="text-[10px] text-noir-textMuted font-mono">${h.time}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // RECEIVERS SYSTEM
+        function renderRecebedoresList() {
+            const container = document.getElementById('recebedoresListContainer');
+            if (!container) return;
+            const term = (document.getElementById('recebedorSearch')?.value || '').toLowerCase();
+            container.innerHTML = '';
+
+            const filtered = mockRecebedores.filter(r => 
+                r.nome.toLowerCase().includes(term) || 
+                r.doc.includes(term) || 
+                r.chavePix.toLowerCase().includes(term)
+            );
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-noir-card p-8 rounded-2xl border border-noir-border text-center text-noir-textMuted space-y-2">
+                        <i class="fa-solid fa-users-slash text-2xl text-slate-600"></i>
+                        <p class="text-xs">Nenhum recebedor cadastrado.</p>
+                        <button onclick="toggleModal('modalNovoRecebedor')" class="text-xs text-noir-green underline font-semibold mt-1">Cadastrar primeiro recebedor</button>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(r => {
+                const card = document.createElement('div');
+                card.className = "bg-noir-card p-4 rounded-2xl border border-noir-border space-y-3 shadow-lg";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-noir-border pb-2.5">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="w-8 h-8 rounded-full bg-emerald-950 border border-noir-green/40 flex items-center justify-center text-noir-green font-bold text-xs">
+                                ${r.nome.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-white">${r.nome}</h3>
+                                <p class="text-[10px] text-noir-textMuted font-mono">${r.doc}</p>
+                            </div>
+                        </div>
+                        <span class="text-[9px] font-bold bg-slate-800 text-slate-300 border border-noir-border px-2 py-0.5 rounded-full">${r.tipo}</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                            <span class="text-slate-400 block text-[10px]">Chave Pix</span>
+                            <span class="text-slate-200 font-mono text-[11px] truncate block">${r.chavePix}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-slate-400 block text-[10px]">Split Padrão</span>
+                            <span class="text-noir-green font-bold">${r.split}%</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-1 flex items-center justify-end space-x-2 border-t border-noir-border/50">
+                        <button onclick="excluirRecebedor('${r.id}')" class="text-[10px] text-rose-400 hover:text-rose-300 font-semibold transition px-2 py-1">Excluir</button>
+                        <button onclick="toggleToast('Regra de Split atualizada para ${r.nome}')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 border border-noir-border px-2.5 py-1 rounded-lg font-semibold transition">Editar Split</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function handleCadastrarRecebedor(e) {
+            e.preventDefault();
+            const nome = document.getElementById('recNome').value;
+            const doc = document.getElementById('recDoc').value;
+            const chavePix = document.getElementById('recChavePix').value;
+            const split = document.getElementById('recSplit').value || '0';
+            const tipo = document.getElementById('recTipo').value;
+
+            const novo = {
+                id: `rec_${Math.random().toString(36).substr(2, 8)}`,
+                nome,
+                doc,
+                chavePix,
+                split,
+                tipo
+            };
+
+            mockRecebedores.unshift(novo);
+            renderRecebedoresList();
+            toggleModal('modalNovoRecebedor');
+            toggleToast(`Recebedor ${nome} cadastrado!`);
+
+            document.getElementById('recNome').value = '';
+            document.getElementById('recDoc').value = '';
+            document.getElementById('recChavePix').value = '';
+            document.getElementById('recSplit').value = '';
+        }
+
+        function excluirRecebedor(id) {
+            mockRecebedores = mockRecebedores.filter(r => r.id !== id);
+            renderRecebedoresList();
+            toggleToast('Recebedor removido');
+        }
+
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.toggle('hidden');
+            }
+        }
+
+        // UTILS
+        function copyText(text, message) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.setAttribute('value', text);
+            document.body.appendChild(hiddenInput);
+            hiddenInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(hiddenInput);
+            toggleToast(message || 'Copiado para a área de transferência!');
+        }
+
+        function toggleToast(msg) {
+            const toast = document.getElementById('toastBox');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.innerText = msg;
+            
+            toast.classList.remove('-translate-y-10', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-10', 'opacity-0');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
+```
